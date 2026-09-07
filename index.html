@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>걸음 도시</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#26262E;--ink-2:#6A6A75;--paper:#FFFBF3;--paper-2:#F3EBDC;--line:#E6DCC7;
+  --coral:#FF6B4A;--coral-d:#D94F31;--coral-soft:#FFE2DA;--mint:#2FBF9A;--sun:#FFC24B;
+  --r:22px;--shadow:0 10px 30px rgba(38,38,46,.14),0 2px 6px rgba(38,38,46,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:'Gowun Dodum',system-ui,sans-serif;color:var(--ink);overflow:hidden;background:#EDE7DA}
+#map{position:absolute;inset:0}
+
+/* ---- 키 입력 화면 ---- */
+.gate{position:absolute;inset:0;z-index:900;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:24px}
+.gate.hide{display:none}
+.gate .box{width:100%;max-width:380px}
+.gate h1{font-family:'Jua',sans-serif;font-weight:400;font-size:30px;margin:0 0 4px}
+.gate p{color:var(--ink-2);font-size:14px;line-height:1.6;margin:0 0 18px}
+.gate label{font-size:13px;color:var(--ink-2);display:block;margin-bottom:6px}
+.gate input{width:100%;font:inherit;font-size:16px;padding:14px 16px;border:2px solid var(--line);border-radius:16px;background:#fff;outline:0}
+.gate input:focus{border-color:var(--coral)}
+.gate .go{width:100%;margin-top:12px;font-family:'Jua',sans-serif;font-size:17px;border:0;border-radius:16px;padding:14px;background:var(--coral);color:#fff;cursor:pointer;box-shadow:0 5px 0 var(--coral-d)}
+.gate .go:active{transform:translateY(3px);box-shadow:0 2px 0 var(--coral-d)}
+.gate .note{margin-top:14px;font-size:12px;color:var(--ink-2);line-height:1.6;background:var(--paper-2);padding:12px 14px;border-radius:14px}
+.gate .err{color:var(--coral-d);font-size:13px;margin-top:10px;display:none}
+
+/* ---- 상단 ---- */
+.top{position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;z-index:500;pointer-events:none}
+.hero{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:14px;pointer-events:auto}
+.ring{position:relative;width:74px;height:74px;flex:none}
+.ring svg{width:74px;height:74px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:7;stroke-linecap:round}
+.ring .bg{stroke:var(--paper-2)}
+.ring .fg{stroke:var(--coral);stroke-dasharray:201;stroke-dashoffset:201;transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)}
+.ring .lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--ink-2);line-height:1.1}
+.ring .lbl b{font-family:'Jua',sans-serif;font-weight:400;font-size:17px;color:var(--ink)}
+.hero .main{flex:1;min-width:0}
+.eyebrow{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--mint)}
+.steps{font-family:'Jua',sans-serif;font-size:36px;line-height:1.05;letter-spacing:-.5px}
+.steps small{font-family:'Gowun Dodum',sans-serif;font-size:13px;color:var(--ink-2);margin-left:4px}
+.stats{display:flex;gap:6px;margin-top:6px}
+.chip{background:var(--paper-2);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+.chip b{font-family:'Jua',sans-serif;font-weight:400;color:var(--ink);font-size:13px;margin-left:3px}
+.rank{flex:none;text-align:center;background:var(--coral-soft);border-radius:16px;padding:8px 10px;min-width:64px}
+.rank .e{font-size:22px;line-height:1}
+.rank .t{font-family:'Jua',sans-serif;font-size:12px;color:var(--coral-d);margin-top:2px}
+.hint{position:absolute;left:50%;top:calc(116px + env(safe-area-inset-top));transform:translateX(-50%);z-index:500;background:var(--ink);color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;white-space:nowrap;transition:.3s;pointer-events:none;box-shadow:var(--shadow)}
+.hint.hide{opacity:0;transform:translateX(-50%) translateY(-6px)}
+
+/* ---- 하단 ---- */
+.bottom{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:10px}
+.dock{display:flex;align-items:center;gap:8px}
+.seg{flex:1;background:var(--paper);border-radius:999px;padding:4px;display:flex;position:relative;box-shadow:var(--shadow)}
+.seg button{flex:1;border:0;background:transparent;font-family:'Jua',sans-serif;font-size:15px;padding:11px 0;border-radius:999px;color:var(--ink-2);cursor:pointer;position:relative;z-index:1;transition:color .2s}
+.seg button.on{color:#fff}
+.seg .pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);background:var(--coral);border-radius:999px;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.seg.build .pill{transform:translateX(100%)}
+.icon{width:50px;height:50px;border-radius:50%;background:var(--paper);border:0;box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center;flex:none;color:var(--ink);transition:.15s}
+.icon svg{width:22px;height:22px}
+.icon.on{background:var(--mint);color:#fff}
+.icon:active{transform:scale(.94)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.sheet{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 0 12px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s cubic-bezier(.2,.8,.2,1);max-height:0;overflow:hidden}
+.sheet.open{transform:none;opacity:1;pointer-events:auto;max-height:260px}
+.sheet .head{display:flex;justify-content:space-between;align-items:baseline;padding:0 16px 10px}
+.sheet h2{font-family:'Jua',sans-serif;font-weight:400;font-size:17px;margin:0}
+.sheet .head span{font-size:12px;color:var(--ink-2)}
+.sheet .head span b{font-family:'Jua',sans-serif;font-weight:400;color:var(--coral-d);font-size:13px}
+.rail{display:flex;gap:10px;overflow-x:auto;padding:4px 16px 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.rail::-webkit-scrollbar{display:none}
+.b{scroll-snap-align:start;flex:none;width:96px;background:#fff;border:2px solid var(--line);border-radius:18px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-family:inherit;color:var(--ink);transition:.15s}
+.b .e{font-size:30px;line-height:1.1}
+.b .n{font-family:'Jua',sans-serif;font-size:14px}
+.b .c{font-size:11px;color:var(--ink-2);display:flex;align-items:center;gap:3px}
+.b .c::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--sun);display:inline-block}
+.b:not(:disabled):active{transform:scale(.96)}
+.b:not(:disabled){border-color:var(--coral-soft)}
+.b:disabled{opacity:.45;cursor:default}
+.b .tag{font-size:10px;color:var(--coral-d);background:var(--coral-soft);padding:2px 7px;border-radius:999px;margin-top:2px}
+
+/* ---- 마커 ---- */
+.me{width:26px;height:26px;border-radius:50%;background:var(--coral);border:3px solid #fff;box-shadow:0 0 0 6px rgba(255,107,74,.25),0 4px 10px rgba(0,0,0,.25);position:relative}
+.me::after{content:'';position:absolute;inset:-12px;border-radius:50%;border:2px solid var(--coral);opacity:0;animation:pulse 2s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.2);opacity:0}}
+.start{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--coral)}
+.bld{width:38px;height:38px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:22px;line-height:1;box-shadow:0 4px 10px rgba(0,0,0,.18);border:2px solid var(--line);animation:drop .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes drop{0%{transform:translateY(-16px) scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.toast{position:fixed;left:50%;top:calc(120px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-10px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-family:'Jua',sans-serif;font-size:15px;opacity:0;transition:.3s;pointer-events:none;z-index:600;white-space:nowrap;box-shadow:var(--shadow)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<!-- 키 입력 -->
+<div class="gate" id="gate">
+  <div class="box">
+    <h1>걸음 도시</h1>
+    <p>네이버 지도 불러오는 중…</p>
+    <div class="err" id="err"></div>
+    <div class="note">현재 주소: <b id="origin"></b><br>이 주소(프로토콜+호스트+포트)가 네이버 클라우드 콘솔 › Maps › Application › Web 서비스 URL에 등록돼 있어야 해요. file:// 로 열면 절대 안 뜨니 로컬 서버로 여세요.</div>
+  </div>
+</div>
+
+<div class="top">
+  <div class="hero">
+    <div class="ring">
+      <svg viewBox="0 0 74 74"><circle class="bg" cx="37" cy="37" r="32"/><circle class="fg" id="ringfg" cx="37" cy="37" r="32"/></svg>
+      <div class="lbl"><b id="pct">0%</b>목표</div>
+    </div>
+    <div class="main">
+      <div class="eyebrow"><span class="dot"></span><span id="date">오늘</span></div>
+      <div class="steps"><span id="steps">0</span><small>걸음</small></div>
+      <div class="stats"><span class="chip">자재<b id="mat">0</b></span><span class="chip">내 땅<b id="area">0㎡</b></span></div>
+    </div>
+    <div class="rank"><div class="e" id="ranke">🌱</div><div class="t" id="rankt">공터</div></div>
+  </div>
+</div>
+<div class="hint" id="hint">지도를 여러 번 탭해 한 바퀴 돌아오면 안쪽이 내 땅</div>
+
+<div class="bottom">
+  <div class="sheet" id="sheet">
+    <div class="head"><h2>여기에 짓기</h2><span>자재 <b id="cellinfo">0</b></span></div>
+    <div class="rail" id="rail"></div>
+  </div>
+  <div class="dock">
+    <div class="seg" id="seg"><div class="pill"></div><button id="walk" class="on">걷기</button><button id="buildmode">짓기</button></div>
+    <button class="icon" id="gps" aria-label="내 위치"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
+    <button class="icon" id="reset" aria-label="초기화"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+$('origin').textContent=location.origin.startsWith('http')?location.origin:'file:// (로컬 서버로 열어야 해요)';
+
+// ---------- 키 (고정) ----------
+const NCP_KEY_ID='ny3tb8plgs';
+loadNaver(NCP_KEY_ID);
+function loadNaver(k){
+  const s=document.createElement('script');
+  s.src=`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(k)}`;
+  s.onload=()=>{ if(window.naver&&naver.maps){ $('gate').classList.add('hide'); init(); } else fail('스크립트는 왔는데 naver.maps가 없어요'); };
+  s.onerror=()=>fail('스크립트 로드 실패 — 인터넷 연결 확인'); document.head.appendChild(s);
+  window.navermap_authFailure=()=>fail('인증 실패 — 콘솔의 Web 서비스 URL에 아래 주소가 등록돼 있는지 확인');
+}
+function fail(msg){ $('err').textContent=msg; $('err').style.display='block'; }
+
+// ---------- 게임 ----------
+function init(){
+const STRIDE=0.7, SIM_SPEED=10, CLOSE_DIST=14, MIN_LOOP=90, GOAL=6000;
+const START=[37.4785,126.8644];
+const B=[
+  {id:'house',e:'🏠',n:'집',cost:300},{id:'cafe',e:'☕',n:'카페',cost:900},{id:'bakery',e:'🥐',n:'빵집',cost:1600},{id:'tree',e:'🌳',n:'공원',cost:2200},
+  {id:'lib',e:'📚',n:'도서관',cost:3500},{id:'dog',e:'🐶',n:'강아지공원',cost:3000},{id:'shop',e:'🏪',n:'시장',cost:5500},{id:'tower',e:'🗼',n:'시계탑',cost:9000},
+];
+const RANKS=[[0,'🌱','공터'],[2000,'🏕️','터전'],[10000,'🏘️','마을'],[40000,'🏙️','동네'],[150000,'🌆','도시']];
+
+let state={total:0,spent:0,today:0,date:'',rings:[],blds:[],pos:START};
+let trail=[];
+const mat=()=>state.total-state.spent;
+const KEY='walkcity:naver';
+try{ const r=localStorage.getItem(KEY); if(r) Object.assign(state,JSON.parse(r)); }catch(e){}
+{ const d=new Date().toDateString(); if(state.date!==d){state.date=d;state.today=0;} }
+let saveT; function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} },400); }
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),1700); }
+
+const R=111320, cosL=Math.cos(START[0]*Math.PI/180);
+const toM=p=>[(p[1]-START[1])*R*cosL,(p[0]-START[0])*R];
+const dist=(a,b)=>{const A=toM(a),Bm=toM(b);return Math.hypot(A[0]-Bm[0],A[1]-Bm[1]);};
+function signedArea(ring){ const m=ring.map(toM); let s=0; for(let i=0;i<m.length;i++){const a=m[i],b=m[(i+1)%m.length]; s+=a[0]*b[1]-b[0]*a[1];} return s/2; }
+function inRing(p,ring){ const [x,y]=toM(p), m=ring.map(toM); let inside=false; for(let i=0,j=m.length-1;i<m.length;j=i++){ const [xi,yi]=m[i],[xj,yj]=m[j]; if((yi>y)!==(yj>y) && x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside; } return inside; }
+const inLand=p=>state.rings.some(r=>inRing(p,r));
+const totalArea=()=>Math.round(state.rings.reduce((s,r)=>s+Math.abs(signedArea(r)),0));
+
+const LL=p=>new naver.maps.LatLng(p[0],p[1]);
+const map=new naver.maps.Map('map',{center:LL(state.pos),zoom:17,mapTypeControl:false,zoomControl:false,logoControlOptions:{position:naver.maps.Position.BOTTOM_LEFT}});
+const polys=[], bldMarkers=[];
+const trailLine=new naver.maps.Polyline({map,path:[],strokeColor:'#D94F31',strokeWeight:5,strokeStyle:'shortdot',strokeLineCap:'round',strokeOpacity:.95});
+const startMk=new naver.maps.Marker({map,position:LL(START),icon:{content:'<div class="start"></div>',anchor:new naver.maps.Point(7,7)},visible:false});
+const me=new naver.maps.Marker({map,position:LL(state.pos),icon:{content:'<div class="me"></div>',anchor:new naver.maps.Point(13,13)},zIndex:1000});
+
+function addPoly(ring){
+  const pg=new naver.maps.Polygon({map,paths:ring.map(LL),fillColor:'#FF6B4A',fillOpacity:.4,strokeColor:'#D94F31',strokeWeight:2.5,clickable:true});
+  naver.maps.Event.addListener(pg,'click',e=>onLandTap([e.coord.lat(),e.coord.lng()]));
+  polys.push(pg); pg.setOptions({fillOpacity:.8}); setTimeout(()=>pg.setOptions({fillOpacity:.4}),500);
+}
+function drawBld(b){ const def=B.find(x=>x.id===b.id); bldMarkers.push(new naver.maps.Marker({map,position:LL(b.p),icon:{content:`<div class="bld">${def.e}</div>`,anchor:new naver.maps.Point(19,32)},clickable:false})); }
+function drawTrail(){ trailLine.setPath(trail.map(LL)); if(trail.length){ startMk.setPosition(LL(trail[0])); startMk.setVisible(true);} else startMk.setVisible(false); }
+
+function trailLen(from=0){ let s=0; for(let i=from+1;i<trail.length;i++) s+=dist(trail[i-1],trail[i]); return s; }
+function claimRing(ring){
+  if(ring.length<3) return false;
+  const a=signedArea(ring); if(Math.abs(a)<400){ trail=[]; drawTrail(); return false; }
+  if(a<0) ring.reverse();
+  state.rings.push(ring); addPoly(ring);
+  toast(`+${Math.round(Math.abs(a)).toLocaleString()}㎡ 내 땅이 됐어요`); $('hint').classList.add('hide');
+  trail=[]; drawTrail(); render(); save(); return true;
+}
+let wasIn=false;
+function onArrive(p){
+  const nowIn=inLand(p);
+  if(nowIn && !wasIn && trail.length>=2 && trailLen()>=MIN_LOOP){ claimRing([...trail,p]); }
+  else if(nowIn){ trail=[]; drawTrail(); }
+  else {
+    for(let i=0;i<trail.length-6;i++){ if(dist(trail[i],p)<CLOSE_DIST && trailLen(i)>=MIN_LOOP){ claimRing(trail.slice(i)); wasIn=nowIn; return; } }
+    if(!trail.length || dist(trail[trail.length-1],p)>=4) trail.push(p);
+    drawTrail();
+  }
+  wasIn=nowIn;
+}
+
+let queue=[], last=performance.now(), mode='walk';
+function moveTo(lat,lng){
+  const d=dist(state.pos,[lat,lng]); if(d<=0) return;
+  const n=Math.ceil(d/6);
+  for(let i=1;i<=n;i++){ const t=i/n; onArrive([state.pos[0]+(lat-state.pos[0])*t, state.pos[1]+(lng-state.pos[1])*t]); }
+  const s=Math.round(d/STRIDE); state.total+=s; state.today+=s;
+  state.pos=[lat,lng]; me.setPosition(LL(state.pos)); render(); save();
+}
+function tick(){
+  const now=performance.now(), dt=Math.min(.2,(now-last)/1000); last=now;
+  if(queue.length){ const t=queue[0], d=dist(state.pos,t), step=SIM_SPEED*dt;
+    if(d<=step){ moveTo(t[0],t[1]); queue.shift(); }
+    else { const k=step/d; moveTo(state.pos[0]+(t[0]-state.pos[0])*k, state.pos[1]+(t[1]-state.pos[1])*k); } }
+  requestAnimationFrame(tick);
+}
+naver.maps.Event.addListener(map,'click',e=>{ const p=[e.coord.lat(),e.coord.lng()]; if(mode==='walk'){ if(gpsOn){ toast('내 위치 모드에서는 실제로 걸어요'); return; } queue.push(p); } else onLandTap(p); });
+
+let gpsOn=false, watchId=null;
+$('gps').onclick=()=>{
+  if(gpsOn){ navigator.geolocation.clearWatch(watchId); gpsOn=false; $('gps').classList.remove('on'); toast('시뮬레이션 모드'); return; }
+  if(!navigator.geolocation){ toast('이 브라우저는 위치를 지원하지 않아요'); return; }
+  watchId=navigator.geolocation.watchPosition(p=>{
+    if(!gpsOn){ gpsOn=true; $('gps').classList.add('on'); queue=[]; trail=[]; drawTrail(); state.pos=[p.coords.latitude,p.coords.longitude]; wasIn=inLand(state.pos); me.setPosition(LL(state.pos)); map.setCenter(LL(state.pos)); map.setZoom(17); toast('내 위치를 따라가요'); return; }
+    if(p.coords.accuracy<50) moveTo(p.coords.latitude,p.coords.longitude);
+  },()=>toast('위치 권한이 없어 시뮬레이션으로 계속해요'),{enableHighAccuracy:true,maximumAge:3000});
+};
+
+let sel=null;
+$('walk').onclick=()=>setMode('walk'); $('buildmode').onclick=()=>setMode('build');
+function setMode(m){ mode=m; $('walk').classList.toggle('on',m==='walk'); $('buildmode').classList.toggle('on',m==='build'); $('seg').classList.toggle('build',m==='build'); $('sheet').classList.remove('open'); sel=null; if(m==='build') toast('내 땅 위를 탭해서 자리를 골라요'); }
+function onLandTap(p){
+  if(mode!=='build') return;
+  if(!inLand(p)){ toast('내 땅 안에만 지을 수 있어요'); return; }
+  if(state.blds.some(b=>dist(b.p,p)<18)){ toast('너무 가까워요'); return; }
+  sel=p; renderSheet(); $('sheet').classList.add('open');
+}
+function renderSheet(){
+  const g=$('rail'); g.innerHTML=''; $('cellinfo').textContent=mat().toLocaleString();
+  B.forEach(b=>{ const el=document.createElement('button'); el.className='b'; const ok=mat()>=b.cost; el.disabled=!ok;
+    el.innerHTML=`<span class="e">${b.e}</span><span class="n">${b.n}</span><span class="c">${b.cost.toLocaleString()}</span>${ok?'<span class="tag">지을 수 있음</span>':''}`;
+    el.onclick=()=>{ if(!sel) return; state.spent+=b.cost; const nb={id:b.id,p:sel}; state.blds.push(nb); drawBld(nb); toast(`${b.n} 완공!`); $('sheet').classList.remove('open'); sel=null; render(); save(); };
+    g.appendChild(el); });
+}
+$('reset').onclick=()=>{ if(confirm('땅과 건물을 전부 지울까요?')){ polys.forEach(p=>p.setMap(null)); polys.length=0; bldMarkers.forEach(m=>m.setMap(null)); bldMarkers.length=0; state={total:0,spent:0,today:0,date:new Date().toDateString(),rings:[],blds:[],pos:state.pos}; trail=[]; queue=[]; wasIn=false; drawTrail(); render(); save(); $('hint').classList.remove('hide'); } };
+
+function render(){
+  $('steps').textContent=state.today.toLocaleString();
+  $('mat').textContent=mat().toLocaleString();
+  const a=totalArea(); $('area').textContent = a>=10000 ? (a/10000).toFixed(2)+'ha' : a.toLocaleString()+'㎡';
+  const pct=Math.min(1,state.today/GOAL); $('pct').textContent=Math.round(pct*100)+'%'; $('ringfg').style.strokeDashoffset=201*(1-pct);
+  const rk=[...RANKS].reverse().find(r=>a>=r[0]); $('ranke').textContent=rk[1]; $('rankt').textContent=rk[2];
+  if($('sheet').classList.contains('open')) renderSheet();
+}
+$('date').textContent=new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+
+state.rings.forEach(addPoly); state.blds.forEach(drawBld); wasIn=inLand(state.pos); drawTrail(); render();
+if(state.rings.length) $('hint').classList.add('hide');
+tick();
+}
+</script>
+</body>
+</html>
