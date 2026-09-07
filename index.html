@@ -13,7 +13,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;font-family:'Gowun Dodum',system-ui,sans-serif;color:var(--ink);overflow:hidden;background:#EDE7DA}
-#map{position:absolute;inset:0}
+#map{position:absolute;inset:0;width:100vw;height:100vh}
 
 /* ---- 키 입력 화면 ---- */
 .gate{position:absolute;inset:0;z-index:900;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -242,7 +242,7 @@ $('gps').onclick=()=>{
   watchId=navigator.geolocation.watchPosition(p=>{
     if(!gpsOn){ gpsOn=true; $('gps').classList.add('on'); queue=[]; trail=[]; drawTrail(); state.pos=[p.coords.latitude,p.coords.longitude]; wasIn=inLand(state.pos); me.setPosition(LL(state.pos)); map.setCenter(LL(state.pos)); map.setZoom(17); toast('내 위치를 따라가요'); return; }
     if(p.coords.accuracy<50) moveTo(p.coords.latitude,p.coords.longitude);
-  },()=>toast('위치 권한이 없어 시뮬레이션으로 계속해요'),{enableHighAccuracy:true,maximumAge:3000});
+  },()=>toast('위치 권한이 없어 시뮬레이션으로 계솝해요'),{enableHighAccuracy:true,maximumAge:3000});
 };
 
 let sel=null;
