@@ -1,7 +1,0 @@
-{
-  "name":"blumax-industrial-village",
-  "version":"1.0.0",
-  "private":true,
-  "scripts":{"start":"vite --host 0.0.0.0 --port $PORT"},
-  "dependencies":{"three":"0.180.0","vite":"7.1.7"}
-}
