@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/><title>BLUMAX 산업혁명 마을</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101512;color:#eee;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}#app,#world{position:fixed;inset:0}canvas{display:block;touch-action:none}
+#hud{position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;gap:8px;z-index:5;pointer-events:none}.pill{background:#17211dcc;border:1px solid #ffffff1c;border-radius:14px;padding:8px 11px;font-size:12px;backdrop-filter:blur(10px)}
+#help{position:fixed;left:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:5;background:#17211dcc;border:1px solid #ffffff1c;border-radius:14px;padding:9px 11px;font-size:12px}
+#sheet{position:fixed;left:8px;right:8px;bottom:8px;z-index:10;background:#17211df2;border:1px solid #ffffff20;border-radius:20px;padding:16px;transform:translateY(120%);transition:.22s;max-height:48vh;overflow:auto}#sheet.open{transform:translateY(0)}#sheet button{float:right;background:#2b3933;color:white;border:0;border-radius:10px;padding:7px 10px}.bar{height:6px;background:#ffffff15;border-radius:9px;margin:4px 0 10px}.bar i{display:block;height:100%;border-radius:9px;background:#8fcf9b}
+#loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#101512;text-align:center;padding:30px}.heart{font-size:54px;animation:p .75s infinite alternate}@keyframes p{to{transform:scale(1.2)}}#error{display:none;max-width:520px}#error button{padding:10px 16px;border:0;border-radius:12px}
+</style></head><body><div id="app"><div id="world"></div><div id="hud"><div class="pill" id="day">1일차</div><div class="pill" id="pop">주민 36</div><div class="pill">🪵 420　🧱 180　⚙️ 32</div></div><div id="help">드래그: 회전 · 핀치: 확대 · 주민 터치: 개인 정보</div><div id="sheet"></div><div id="loading"><div id="loadok"><div class="heart">♥</div><h2>산업혁명 마을을 깨우는 중</h2><p id="status">3D 장면 준비 중…</p></div><div id="error"><h2>게임을 열지 못했어</h2><p id="errmsg"></p><button onclick="location.reload()">다시 시도</button></div></div></div>
+<script type="module">
+const loading=document.querySelector('#loading'), status=document.querySelector('#status'), err=document.querySelector('#error'), ok=document.querySelector('#loadok');
+function fail(e){ok.style.display='none';err.style.display='block';document.querySelector('#errmsg').textContent=String(e?.message||e)}
+window.addEventListener('error',e=>fail(e.error||e.message));window.addEventListener('unhandledrejection',e=>fail(e.reason));
+const timeout=setTimeout(()=>fail('초기화가 8초를 넘겼어. 새로고침해 줘.'),8000);
+try{
+ status.textContent='Three.js 엔진 불러오는 중…';
+ const THREE=await import('three');
+ status.textContent='주민과 공장을 배치하는 중…';
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x9db59c);scene.fog=new THREE.Fog(0x9db59c,45,125);
+ const camera=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,.1,300);camera.position.set(34,31,38);camera.lookAt(0,0,0);
+ const renderer=new THREE.WebGLRenderer({antialias:innerWidth>700,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;document.querySelector('#world').appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0xeaf5e5,0x4d4a3d,2.1));const sun=new THREE.DirectionalLight(0xfff1d2,2);sun.position.set(20,30,12);scene.add(sun);
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(140,110),new THREE.MeshLambertMaterial({color:0x607b52}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+ const river=new THREE.Mesh(new THREE.PlaneGeometry(14,110),new THREE.MeshLambertMaterial({color:0x5c91a8}));river.rotation.x=-Math.PI/2;river.position.y=.03;scene.add(river);
+ const mat={brick:new THREE.MeshLambertMaterial({color:0x8f4f3d}),roof:new THREE.MeshLambertMaterial({color:0x353735}),wood:new THREE.MeshLambertMaterial({color:0x8b6948}),iron:new THREE.MeshLambertMaterial({color:0x5e6260}),skin:new THREE.MeshLambertMaterial({color:0xd8ae82}),cloth:new THREE.MeshLambertMaterial({color:0x38556a})};
+ function box(x,y,z,w,h,d,m){const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);q.position.set(x,y,z);scene.add(q);return q}
+ function house(x,z,s=1){box(x,1.3*s,z,5*s,2.6*s,4*s,mat.brick);const r=new THREE.Mesh(new THREE.ConeGeometry(3.6*s,2.1*s,4),mat.roof);r.position.set(x,3.55*s,z);r.rotation.y=Math.PI/4;scene.add(r)}
+ function factory(x,z){box(x,2,z,9,4,6,mat.brick);box(x+2.7,6,z+1.5,1.2,8,1.2,mat.iron);for(let i=-1;i<=1;i++)box(x+i*2.2,2.2,z-3.15,1.2,1.4,.2,mat.iron)}
+ for(let i=0;i<16;i++)house(-27+(i%4)*7,-30+Math.floor(i/4)*8,.85+Math.random()*.18);
+ factory(23,-21);factory(26,-5);factory(22,14);box(25,1,29,12,2,8,mat.wood);
+ for(let i=0;i<3;i++){for(let z=-50;z<50;z+=4)box(-4.5+i*4.5,.35,z,3.8,.7,1,mat.wood)}
+ const bridge=box(0,.45,0,16,.9,5,mat.wood);
+ const people=[];const names=['민호','세윤','하린','도윤','지우','서준','유나','지호','수아','현우','예린','태윤'];const jobs=['건설공','운반공','탄광부','제련공','방직공','기계공','농부','의사'];
+ function person(i){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.38,.7,4,8),mat.cloth);body.position.y=1;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.32,10,8),mat.skin);head.position.y=1.75;g.add(head);g.position.set((Math.random()-.5)*55,0,(Math.random()-.5)*70);g.userData={person:true,id:i,name:names[i%names.length]+(i>=names.length?Math.floor(i/names.length)+1:''),job:jobs[i%jobs.length],hunger:70+Math.floor(Math.random()*30),energy:65+Math.floor(Math.random()*35),mood:75+Math.floor(Math.random()*25),health:90+Math.floor(Math.random()*10),target:new THREE.Vector3()};scene.add(g);people.push(g);pickTarget(g);return g}
+ function pickTarget(p){p.userData.target.set((Math.random()-.5)*58,0,(Math.random()-.5)*82)}
+ for(let i=0;i<36;i++)person(i);
+ const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),sheet=document.querySelector('#sheet');
+ function show(p){const u=p.userData;sheet.innerHTML='<button id="close">닫기</button><h2>'+u.name+'</h2><b>'+u.job+'</b><p>현재 행동: '+(u.job==='건설공'?'건설 현장으로 이동 중':'일터로 이동 중')+'</p>'+[['배고픔',u.hunger],['기력',u.energy],['기분',u.mood],['건강',u.health]].map(([n,v])=>'<div>'+n+' '+v+'%</div><div class="bar"><i style="width:'+v+'%"></i></div>').join('')+'<p>가족: 마을 주민과 함께 거주<br>개인 일지: 오늘도 마을이 조금씩 커지고 있다.</p>';sheet.classList.add('open');document.querySelector('#close').onclick=()=>sheet.classList.remove('open')}
+ function pick(e){const r=renderer.domElement.getBoundingClientRect();const t=e.changedTouches?e.changedTouches[0]:e;mouse.x=((t.clientX-r.left)/r.width)*2-1;mouse.y=-((t.clientY-r.top)/r.height)*2+1;ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(people,true);if(hits.length){let o=hits[0].object;while(o.parent&&!o.userData.person)o=o.parent;if(o.userData.person)show(o)}}
+ let down=null,yaw=.72,pitch=.55,dist=53,target=new THREE.Vector3();
+ renderer.domElement.addEventListener('pointerdown',e=>down={x:e.clientX,y:e.clientY});
+ renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;if(Math.hypot(dx,dy)>4){yaw-=dx*.006;pitch=Math.max(.2,Math.min(1.25,pitch+dy*.006));down={x:e.clientX,y:e.clientY}}});
+ renderer.domElement.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<7)pick(e);down=null});
+ renderer.domElement.addEventListener('wheel',e=>{dist=Math.max(18,Math.min(90,dist+e.deltaY*.03));e.preventDefault()},{passive:false});
+ let pinch=0;renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(pinch)dist=Math.max(18,Math.min(90,dist-(d-pinch)*.08));pinch=d;e.preventDefault()}},{passive:false});renderer.domElement.addEventListener('touchend',()=>pinch=0);
+ function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener('resize',resize);
+ clearTimeout(timeout);loading.style.display='none';
+ let last=performance.now(),day=1;
+ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.04,(now-last)/1000);last=now;for(const p of people){const v=p.userData.target.clone().sub(p.position);v.y=0;if(v.length()<1)pickTarget(p);else{v.normalize();p.position.addScaledVector(v,dt*(1.4+(p.userData.id%5)*.08));p.rotation.y=Math.atan2(v.x,v.z)}}day+=dt*.012;document.querySelector('#day').textContent=Math.floor(day)+'일차';camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*dist,target.y+Math.sin(pitch)*dist,target.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(target);renderer.render(scene,camera)}
+ requestAnimationFrame(loop);
+}catch(e){clearTimeout(timeout);fail(e)}
+</script></body></html>
